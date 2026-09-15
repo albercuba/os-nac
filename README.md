@@ -2,10 +2,22 @@
 
 `os-nac` is an OPNsense MVC plugin scaffold for MAC-based NAC management alongside the existing `os-freeradius` plugin. It targets OPNsense 25.7 and FreeRADIUS MAB/802.1X workflows where the switch sends a 12-hex-digit MAC address as both RADIUS username and password.
 
+> Status: MVP scaffold. The plugin source, model, APIs, views, scripts, and parser tests are present, but it still needs live OPNsense 25.7 lab validation before production use. See [`roadmap.md`](roadmap.md) for the hardening plan.
+
 Example:
 
 - MAC: `bc:0f:f3:92:b3:3a`
 - RADIUS username/password: `BC0FF392B33A`
+
+## Current capabilities
+
+- Discover MAC-format FreeRADIUS authentication attempts from recent logs.
+- Track unknown and blocked endpoint devices in NAC Manager state.
+- Read allowed endpoint devices from existing FreeRADIUS users with 12-hex usernames.
+- Approve unknown devices by creating/updating FreeRADIUS MAC users.
+- Edit VLAN, description, and enabled state for MAC-auth FreeRADIUS users.
+- Revoke or block MAC-auth users without touching non-MAC FreeRADIUS accounts.
+- Show diagnostics for FreeRADIUS status, VLAN/fallback settings, blocked sync output, and device counts.
 
 ## Upstream FreeRADIUS audit
 
@@ -147,6 +159,8 @@ The Allowed page intentionally shows only 12-hex MAC identities. Normal FreeRADI
 
 ## Installation for development
 
+Use these copy-based steps only for a lab firewall. The preferred production path is an OPNsense plugin package after package-build validation.
+
 From this repository root:
 
 ```sh
@@ -240,6 +254,8 @@ Manual tests:
 
 ## Known limitations
 
+See [`roadmap.md`](roadmap.md) for planned fixes and enhancements.
+
 - Detection is currently an idempotent recent-log scan, not a live event subscription.
 - Log parsing supports common FreeRADIUS reject/accept line formats but may need tuning for local log verbosity.
 - The explicit blocked deny-list currently patches the generated FreeRADIUS `authorize` file after template reload because upstream `os-freeradius` has no deny-list/include model for this purpose.
@@ -259,3 +275,7 @@ Manual tests:
 - Unrelated FreeRADIUS users: only usernames matching 12 hex digits are shown/edited/deleted by Allowed Devices APIs.
 - Secret exposure: RADIUS shared secrets are not read or displayed; MAC-as-password is not shown in NAC Manager tables.
 - Log injection: logged values are normalized MAC identities where possible.
+
+## Development roadmap
+
+The next work is tracked in [`roadmap.md`](roadmap.md). The highest-priority items are live OPNsense 25.7 validation, FreeRADIUS integration hardening, detection reliability with real UniFi log samples, UI form polish, and package-build testing.
