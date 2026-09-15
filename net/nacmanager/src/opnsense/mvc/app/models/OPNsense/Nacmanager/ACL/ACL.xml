@@ -1,0 +1,9 @@
+<acl>
+   <page-services-nacmanager>
+      <name>Services: NAC Manager</name>
+      <patterns>
+         <pattern>ui/nacmanager/*</pattern>
+         <pattern>api/nacmanager/*</pattern>
+      </patterns>
+   </page-services-nacmanager>
+</acl>

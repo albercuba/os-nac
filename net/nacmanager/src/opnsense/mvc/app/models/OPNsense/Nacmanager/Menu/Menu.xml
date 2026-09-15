@@ -1,0 +1,10 @@
+<menu>
+  <Services>
+    <Nacmanager VisibleName="NAC Manager" cssClass="fa fa-shield fa-fw">
+      <UnknownDevices VisibleName="Unknown Devices" url="/ui/nacmanager/devices/unknown" order="10"/>
+      <AllowedDevices VisibleName="Allowed Devices" url="/ui/nacmanager/allowed/index" order="20"/>
+      <BlockedDevices VisibleName="Blocked Devices" url="/ui/nacmanager/devices/blocked" order="30"/>
+      <Diagnostics VisibleName="Diagnostics" url="/ui/nacmanager/diagnostics/index" order="40"/>
+    </Nacmanager>
+  </Services>
+</menu>

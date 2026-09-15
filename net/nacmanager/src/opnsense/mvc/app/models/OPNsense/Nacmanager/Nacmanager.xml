@@ -1,0 +1,72 @@
+<model>
+    <mount>//OPNsense/nacmanager</mount>
+    <description>NAC Manager device state</description>
+    <version>0.1.0</version>
+    <items>
+        <devices>
+            <device type="ArrayField">
+                <mac type="TextField">
+                    <Required>Y</Required>
+                    <Mask><![CDATA[/^([0-9A-Fa-f]{12}|([0-9A-Fa-f]{2}[:-]){5}[0-9A-Fa-f]{2})$/]]></Mask>
+                </mac>
+                <radius_identity type="TextField">
+                    <Required>Y</Required>
+                    <Mask>/^[0-9A-Fa-f]{12}$/</Mask>
+                </radius_identity>
+                <first_seen type="TextField">
+                    <Required>N</Required>
+                </first_seen>
+                <last_seen type="TextField">
+                    <Required>N</Required>
+                </last_seen>
+                <nas_ip type="TextField">
+                    <Required>N</Required>
+                    <Mask><![CDATA[/^$|^\d{1,3}(\.\d{1,3}){3}$/]]></Mask>
+                </nas_ip>
+                <nas_port type="TextField">
+                    <Required>N</Required>
+                    <Mask><![CDATA[/^[0-9A-Za-z._:\-\/ ]{0,128}$/]]></Mask>
+                </nas_port>
+                <calling_station_id type="TextField">
+                    <Required>N</Required>
+                    <Mask><![CDATA[/^[0-9A-Fa-f.:-]{0,32}$/]]></Mask>
+                </calling_station_id>
+                <auth_result type="OptionField">
+                    <Default>reject</Default>
+                    <Required>Y</Required>
+                    <OptionValues>
+                        <accept>accept</accept>
+                        <reject>reject</reject>
+                        <unknown>unknown</unknown>
+                    </OptionValues>
+                </auth_result>
+                <status type="OptionField">
+                    <Default>unknown</Default>
+                    <Required>Y</Required>
+                    <OptionValues>
+                        <unknown>unknown</unknown>
+                        <allowed>allowed</allowed>
+                        <blocked>blocked</blocked>
+                    </OptionValues>
+                </status>
+                <assigned_vlan type="IntegerField">
+                    <Required>N</Required>
+                    <MinimumValue>1</MinimumValue>
+                    <MaximumValue>4094</MaximumValue>
+                </assigned_vlan>
+                <description type="TextField">
+                    <Required>N</Required>
+                </description>
+                <notes type="TextField">
+                    <Required>N</Required>
+                </notes>
+                <managed_by type="TextField">
+                    <Required>N</Required>
+                </managed_by>
+                <updated_at type="TextField">
+                    <Required>N</Required>
+                </updated_at>
+            </device>
+        </devices>
+    </items>
+</model>

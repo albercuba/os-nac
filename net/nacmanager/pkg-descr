@@ -1,0 +1,4 @@
+NAC Manager provides an OPNsense-native companion interface for the
+FreeRADIUS plugin. It discovers MAC-based authentication attempts, tracks
+unknown and blocked endpoint devices, and manages MAC-auth endpoint users in
+the existing FreeRADIUS user model without replacing FreeRADIUS.
