@@ -1,6 +1,7 @@
 #!/usr/local/bin/python3
 
 import datetime
+import json
 import os
 import re
 import sys
@@ -8,16 +9,18 @@ import tempfile
 import uuid
 import xml.etree.ElementTree as ET
 
-CONFIG = '/conf/config.xml'
-LOGS = [
-    '/var/log/radius/radius.log',
-    '/var/log/radius.log',
-    '/var/log/system/latest.log',
-]
+CONFIG = os.environ.get('NACMANAGER_CONFIG', '/conf/config.xml')
+STATE = os.environ.get('NACMANAGER_STATE', '/var/db/nacmanager/detect_state.json')
+LOGS = os.environ.get(
+    'NACMANAGER_LOGS',
+    '/var/log/radius/radius.log:/var/log/radius.log:/var/log/system/latest.log',
+).split(':')
+TAIL_LIMIT = int(os.environ.get('NACMANAGER_TAIL_LIMIT', '200000'))
 MAC_RE = re.compile(r'(?<![0-9A-Fa-f])([0-9A-Fa-f]{12})(?![0-9A-Fa-f])')
-CALLING_RE = re.compile(r'(?:Calling-Station-Id|cli)\s*[=:]?\s*([0-9A-Fa-f.:-]{12,32})', re.I)
-NAS_RE = re.compile(r'(?:from client|NAS-IP-Address\s*=)\s*([0-9]{1,3}(?:\.[0-9]{1,3}){3})', re.I)
-PORT_RE = re.compile(r'(?:port|NAS-Port(?:-Id)?\s*=)\s*([0-9A-Za-z._:/-]+)', re.I)
+CALLING_RE = re.compile(r'(?:Calling-Station-Id|cli)\s*(?::=|=|:)?\s*"?([0-9A-Fa-f.:-]{12,32})"?', re.I)
+NAS_RE = re.compile(r'(?:from client|NAS-IP-Address\s*(?::=|=|:)?)\s*"?([0-9]{1,3}(?:\.[0-9]{1,3}){3})"?', re.I)
+CLIENT_RE = re.compile(r'from client\s+([0-9A-Za-z._:-]+)', re.I)
+PORT_RE = re.compile(r'(?:port|NAS-Port(?:-Id)?\s*(?::=|=|:)?)\s*"?([0-9A-Za-z._:/-]+)"?', re.I)
 REJECT_RE = re.compile(r'(reject|login incorrect|invalid user|no auth-type|access-reject)', re.I)
 ACCEPT_RE = re.compile(r'(access-accept|login ok)', re.I)
 
@@ -47,13 +50,49 @@ def ensure_path(root, names):
     return node
 
 
-def read_tail(path, limit=200000):
+def load_state():
     try:
+        with open(STATE, 'r', encoding='utf-8') as handle:
+            data = json.load(handle)
+            return data if isinstance(data, dict) else {}
+    except (FileNotFoundError, json.JSONDecodeError):
+        return {}
+
+
+def save_state(state):
+    directory = os.path.dirname(STATE)
+    if directory:
+        os.makedirs(directory, mode=0o700, exist_ok=True)
+    fd, tmp = tempfile.mkstemp(prefix='detect_state.', suffix='.tmp', dir=directory or None)
+    try:
+        with os.fdopen(fd, 'w', encoding='utf-8') as handle:
+            json.dump(state, handle, sort_keys=True)
+            handle.write('\n')
+            handle.flush()
+            os.fsync(handle.fileno())
+        os.replace(tmp, STATE)
+    finally:
+        if os.path.exists(tmp):
+            os.unlink(tmp)
+
+
+def read_new_lines(path, state, limit=TAIL_LIMIT):
+    try:
+        stat = os.stat(path)
+        inode = '%s:%s' % (getattr(stat, 'st_dev', 0), getattr(stat, 'st_ino', 0))
+        previous = state.get(path, {})
+        offset = int(previous.get('offset', 0)) if previous.get('inode') == inode else 0
         with open(path, 'rb') as handle:
-            handle.seek(0, os.SEEK_END)
-            size = handle.tell()
-            handle.seek(max(0, size - limit), os.SEEK_SET)
-            return handle.read().decode('utf-8', 'replace').splitlines()
+            size = stat.st_size
+            if offset <= 0:
+                handle.seek(max(0, size - limit), os.SEEK_SET)
+            elif offset <= size:
+                handle.seek(offset, os.SEEK_SET)
+            else:
+                handle.seek(max(0, size - limit), os.SEEK_SET)
+            raw = handle.read()
+            state[path] = {'inode': inode, 'offset': handle.tell()}
+            return raw.decode('utf-8', 'replace').splitlines()
     except FileNotFoundError:
         return []
 
@@ -74,6 +113,7 @@ def event_from_line(line):
         return None
     calling = CALLING_RE.search(line)
     nas = NAS_RE.search(line)
+    client = CLIENT_RE.search(line)
     port = PORT_RE.search(line)
     return {
         'radius_identity': identity,
@@ -81,6 +121,7 @@ def event_from_line(line):
         'calling_station_id': calling.group(1) if calling else '',
         'nas_ip': nas.group(1) if nas else '',
         'nas_port': port.group(1) if port else '',
+        'nas_identifier': client.group(1) if client else '',
         'auth_result': 'accept' if ACCEPT_RE.search(line) else 'reject',
     }
 
@@ -97,6 +138,13 @@ def radius_allowed(root, identity):
     return False
 
 
+def set_text(node, key, value):
+    child = node.find(key)
+    if child is None:
+        child = ET.SubElement(node, key)
+    child.text = value
+
+
 def upsert_event(root, event):
     devices = ensure_path(root, ['OPNsense', 'nacmanager', 'devices'])
     identity = event['radius_identity']
@@ -109,19 +157,25 @@ def upsert_event(root, event):
     timestamp = now()
     if found is None:
         found = ET.SubElement(devices, 'device', {'uuid': str(uuid.uuid4())})
-        ET.SubElement(found, 'mac').text = event['mac']
-        ET.SubElement(found, 'radius_identity').text = identity
-        ET.SubElement(found, 'first_seen').text = timestamp
+        set_text(found, 'mac', event['mac'])
+        set_text(found, 'radius_identity', identity)
+        set_text(found, 'first_seen', timestamp)
         created = True
     current_status = found.findtext('status') or ''
     status = 'allowed' if radius_allowed(root, identity) else 'unknown'
     if current_status == 'blocked':
         status = 'blocked'
-    for key in ['last_seen', 'nas_ip', 'nas_port', 'calling_station_id', 'auth_result', 'status']:
-        child = found.find(key)
-        if child is None:
-            child = ET.SubElement(found, key)
-        child.text = timestamp if key == 'last_seen' else event.get(key, status if key == 'status' else '')
+    updates = {
+        'last_seen': timestamp,
+        'nas_ip': event.get('nas_ip', ''),
+        'nas_port': event.get('nas_port', ''),
+        'calling_station_id': event.get('calling_station_id', ''),
+        'auth_result': event.get('auth_result', 'unknown'),
+        'status': status,
+    }
+    for key, value in updates.items():
+        if value != '' or found.find(key) is None:
+            set_text(found, key, value)
     return created
 
 
@@ -141,27 +195,24 @@ def atomic_write(tree):
 
 def main():
     if not os.path.exists(CONFIG):
-        print('missing /conf/config.xml')
+        print('missing %s' % CONFIG)
         return 1
+    state = load_state()
     tree = ET.parse(CONFIG)
     root = tree.getroot()
     events = []
     for path in LOGS:
-        for line in read_tail(path):
+        for line in read_new_lines(path, state):
             event = event_from_line(line)
             if event is not None:
                 events.append(event)
     created = 0
-    seen = set()
     for event in events:
-        key = event['radius_identity']
-        if key in seen:
-            continue
-        seen.add(key)
         if upsert_event(root, event):
             created += 1
     if events:
         atomic_write(tree)
+    save_state(state)
     print('processed=%d discovered=%d' % (len(events), created))
     return 0
 

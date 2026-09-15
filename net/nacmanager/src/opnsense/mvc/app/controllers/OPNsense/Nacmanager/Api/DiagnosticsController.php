@@ -18,7 +18,9 @@ class DiagnosticsController extends ApiControllerBase
         $general = new FreeRADIUSGeneral();
         $nac = new Nacmanager();
         $radius = new FreeRADIUSUser();
-        $counts = array('unknown' => 0, 'allowed' => 0, 'blocked' => 0, 'mac_users' => 0);
+        $counts = array('unknown' => 0, 'allowed' => 0, 'blocked' => 0, 'mac_users' => 0, 'duplicate_mac_users' => 0);
+                $warnings = array();
+                $macUsers = array();
         foreach ($nac->devices->device->iterateItems() as $node) {
             $status = (string)$node->status;
             if (isset($counts[$status])) {
@@ -26,9 +28,28 @@ class DiagnosticsController extends ApiControllerBase
             }
         }
         foreach ($radius->users->user->iterateItems() as $node) {
-            if (preg_match('/^[0-9A-Fa-f]{12}$/', (string)$node->username)) {
+            $identity = strtoupper((string)$node->username);
+            if (preg_match('/^[0-9A-Fa-f]{12}$/', $identity)) {
                 $counts['mac_users']++;
+                if (!isset($macUsers[$identity])) {
+                    $macUsers[$identity] = 0;
+                }
+                $macUsers[$identity]++;
             }
+        }
+        foreach ($macUsers as $identity => $count) {
+            if ($count > 1) {
+                $counts['duplicate_mac_users'] += $count;
+            }
+        }
+        if ($counts['duplicate_mac_users'] > 0) {
+            $warnings[] = 'Duplicate FreeRADIUS MAC users were found. Resolve duplicates before approving or editing affected devices.';
+        }
+        if ($general->vlanassign->__toString() != '1') {
+            $warnings[] = 'FreeRADIUS VLAN assignment is disabled. Device VLAN values are saved but will not be returned until VLAN assignment is enabled in FreeRADIUS.';
+        }
+        if ($general->fallbackvlan_enabled->__toString() == '1') {
+            $warnings[] = 'FreeRADIUS fallback VLAN is enabled. NAC Manager keeps blocked devices explicit-reject synced so they do not fall through to fallback acceptance.';
         }
         return array(
             'freeradius_enabled' => (string)$general->enabled,
@@ -37,6 +58,7 @@ class DiagnosticsController extends ApiControllerBase
             'freeradius_status' => trim($statusText),
             'blocked_sync' => trim($sync),
             'counts' => $counts,
+                        'warnings' => $warnings,
         );
     }
 

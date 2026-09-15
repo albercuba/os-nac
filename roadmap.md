@@ -18,6 +18,8 @@ Implemented:
 - [X] Block flow that revokes matching FreeRADIUS MAC users
 - [X] Runtime blocked-device reject synchronization for FreeRADIUS fallback-VLAN safety
 - [X] Log-scanning detection script and parser unit tests
+- [X] Cursor-based incremental log scanning
+- [X] Duplicate FreeRADIUS MAC-user warnings
 
 Not yet verified:
 
@@ -49,8 +51,8 @@ Exit criteria:
 Goal: make FreeRADIUS updates safer, more native, and repeatable.
 
 - [ ] Confirm exact OPNsense 25.7 model method behavior for adding/deleting `OPNsense\Freeradius\User` nodes.
-- [ ] Add duplicate-MAC checks with clear validation errors.
-- [ ] Confirm VLAN assignment behavior when `freeradius.general.vlanassign` is disabled and show a warning in Diagnostics.
+- [X] Add duplicate-MAC checks with clear validation errors.
+- [X] Show a Diagnostics warning when `freeradius.general.vlanassign` is disabled.
 - [ ] Decide whether approvals should automatically enable `vlanassign` or require the admin to enable it in FreeRADIUS.
 - [ ] Add a safer native hook for blocked-device reject rules if possible.
 - [ ] Investigate whether an upstream-compatible FreeRADIUS template include point can replace post-generation `authorize` patching.
@@ -67,11 +69,11 @@ Goal: make unknown-device discovery reliable for real UniFi/FreeRADIUS logs.
 
 - [ ] Capture actual OPNsense 25.7 FreeRADIUS log lines for UniFi MAB rejects and accepts.
 - [ ] Extend parser tests with real sanitized log samples.
-- [ ] Track a read cursor/state file to avoid repeatedly scanning the same events.
-- [ ] Add idempotent update behavior for repeated attempts from the same MAC.
-- [ ] Preserve latest NAS IP, NAS port, Calling-Station-Id, and auth result.
+- [X] Track a read cursor/state file to avoid repeatedly scanning the same events.
+- [X] Add idempotent update behavior for repeated attempts from the same MAC.
+- [X] Preserve latest NAS IP, NAS port, Calling-Station-Id, and auth result.
 - [ ] Evaluate accounting/detail logs or a dedicated FreeRADIUS policy/log rule as a cleaner event source.
-- [ ] Add a cron/configd scheduling option for periodic detection.
+- [X] Add a cron/configd scheduling option for periodic detection.
 
 Exit criteria:
 
@@ -100,7 +102,7 @@ Exit criteria:
 
 Goal: add repeatable tests and document security behavior.
 
-- [ ] Add parser tests for more log formats.
+- [X] Add parser tests for more log formats.
 - [ ] Add mocked XML config tests for approve/block/sync scripts where practical.
 - [ ] Add documented `radtest` or `radclient` procedures for Access-Reject/Access-Accept testing.
 - [ ] Test malformed MAC and invalid VLAN API requests.

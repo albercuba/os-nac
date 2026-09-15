@@ -50,12 +50,22 @@ class DevicesController extends ApiMutableModelControllerBase
         return new FreeRADIUSUser();
     }
 
-    private function findRadiusUserByIdentity(FreeRADIUSUser $model, $identity)
+    private function findRadiusUsersByIdentity(FreeRADIUSUser $model, $identity)
     {
+        $matches = array();
         foreach ($model->users->user->iterateItems() as $uuid => $node) {
             if (strtoupper((string)$node->username) === $identity) {
-                return array($uuid, $node);
+                $matches[$uuid] = $node;
             }
+        }
+        return $matches;
+    }
+
+    private function findRadiusUserByIdentity(FreeRADIUSUser $model, $identity)
+    {
+        $matches = $this->findRadiusUsersByIdentity($model, $identity);
+        foreach ($matches as $uuid => $node) {
+            return array($uuid, $node);
         }
         return array(null, null);
     }
@@ -180,7 +190,19 @@ class DevicesController extends ApiMutableModelControllerBase
         }
 
         $radius = $this->freeradiusUsers();
-        list($userUuid, $userNode) = $this->findRadiusUserByIdentity($radius, $identity);
+        $matches = $this->findRadiusUsersByIdentity($radius, $identity);
+        if (count($matches) > 1) {
+            return array(
+                'result' => 'failed',
+                'validations' => array('radius_identity' => 'Duplicate FreeRADIUS MAC users exist for this identity. Remove duplicates in FreeRADIUS before approving.')
+            );
+        }
+        $userUuid = null;
+        $userNode = null;
+        foreach ($matches as $matchUuid => $matchNode) {
+            $userUuid = $matchUuid;
+            $userNode = $matchNode;
+        }
         if ($userNode === null) {
             $userNode = $radius->users->user->add();
         }

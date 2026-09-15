@@ -11,13 +11,13 @@ Example:
 
 ## Current capabilities
 
-- Discover MAC-format FreeRADIUS authentication attempts from recent logs.
+- Discover MAC-format FreeRADIUS authentication attempts from recent logs with cursor-based incremental scanning.
 - Track unknown and blocked endpoint devices in NAC Manager state.
 - Read allowed endpoint devices from existing FreeRADIUS users with 12-hex usernames.
 - Approve unknown devices by creating/updating FreeRADIUS MAC users.
 - Edit VLAN, description, and enabled state for MAC-auth FreeRADIUS users.
 - Revoke or block MAC-auth users without touching non-MAC FreeRADIUS accounts.
-- Show diagnostics for FreeRADIUS status, VLAN/fallback settings, blocked sync output, and device counts.
+- Show diagnostics for FreeRADIUS status, VLAN/fallback settings, duplicate MAC-user warnings, blocked sync output, and device counts.
 
 ## Upstream FreeRADIUS audit
 
@@ -190,6 +190,14 @@ service configd restart
 configctl nacmanager detect
 ```
 
+For periodic detection, add an OPNsense cron job that runs this configd action:
+
+```sh
+configctl nacmanager detect_scheduled
+```
+
+The detector stores its read cursor in `/var/db/nacmanager/detect_state.json` so repeated scheduled runs process only new log data.
+
 ## Workflows
 
 ### Unknown Devices
@@ -256,8 +264,8 @@ Manual tests:
 
 See [`roadmap.md`](roadmap.md) for planned fixes and enhancements.
 
-- Detection is currently an idempotent recent-log scan, not a live event subscription.
-- Log parsing supports common FreeRADIUS reject/accept line formats but may need tuning for local log verbosity.
+- Detection is currently an idempotent incremental log scan, not a live event subscription.
+- Log parsing supports several common FreeRADIUS reject/accept line formats, including quoted `Calling-Station-Id`, but may need tuning for local log verbosity.
 - The explicit blocked deny-list currently patches the generated FreeRADIUS `authorize` file after template reload because upstream `os-freeradius` has no deny-list/include model for this purpose.
 - The UI uses simple native tables and prompt/confirm dialogs for MVP; richer modal forms can replace these later.
 - No dashboard widget is included yet.

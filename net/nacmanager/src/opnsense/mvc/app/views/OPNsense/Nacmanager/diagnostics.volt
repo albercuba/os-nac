@@ -8,6 +8,8 @@ $(document).ready(function() {
             $('#radius-status').text(data.freeradius_status || 'unknown');
             $('#blocked-sync').text(data.blocked_sync || 'not run');
             $('#counts').text(JSON.stringify(data.counts || {}));
+                        var warnings = data.warnings || [];
+                        $('#warnings').text(warnings.length ? warnings.join('\n') : 'none');
         });
     }
     $('#refreshAct').click(reloadDiagnostics);
@@ -34,6 +36,7 @@ $(document).ready(function() {
             <dt>{{ lang._('Service status') }}</dt><dd><pre id="radius-status"></pre></dd>
             <dt>{{ lang._('Blocked sync') }}</dt><dd><pre id="blocked-sync"></pre></dd>
             <dt>{{ lang._('Counts') }}</dt><dd><pre id="counts"></pre></dd>
+            <dt>{{ lang._('Warnings') }}</dt><dd><pre id="warnings"></pre></dd>
             <dt>{{ lang._('Detect output') }}</dt><dd><pre id="detect-output"></pre></dd>
         </dl>
     </div>
