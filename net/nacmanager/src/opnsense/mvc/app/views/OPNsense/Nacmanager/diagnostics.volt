@@ -13,6 +13,22 @@ $(document).ready(function() {
         $(id).text(value || 0);
     }
 
+    function renderRuntimeStatus(radiusStatus, blockedSync) {
+        var running = /\bis running\b/i.test(radiusStatus || '');
+        var pid = /pid\s+(\d+)/i.exec(radiusStatus || '');
+        $('#radius-status-label').html('<span class="label label-' + (running ? 'success' : 'danger') + '">' + (running ? '{{ lang._('Running') }}' : '{{ lang._('Not running') }}') + '</span>');
+        $('#radius-status-detail').text(pid ? '{{ lang._('Process ID') }}: ' + pid[1] : (radiusStatus || '{{ lang._('No status output returned.') }}'));
+
+        var blocked = /blocked=(\d+)/i.exec(blockedSync || '');
+        if (blocked) {
+            $('#blocked-sync-label').html('<span class="label label-success">{{ lang._('Synced') }}</span>');
+            $('#blocked-sync-detail').text(blocked[1] + ' {{ lang._('blocked device reject rule(s) are currently synced to FreeRADIUS.') }}');
+        } else {
+            $('#blocked-sync-label').html('<span class="label label-default">{{ lang._('Unknown') }}</span>');
+            $('#blocked-sync-detail').text(blockedSync || '{{ lang._('No sync output returned.') }}');
+        }
+    }
+
     function renderWarnings(warnings) {
         var box = $('#warnings-box').empty();
         if (!warnings || warnings.length === 0) {
@@ -42,15 +58,22 @@ $(document).ready(function() {
     }
 
     function renderDetectOutput(output) {
-        $('#detect-output').text(output || '{{ lang._('Not run yet.') }}');
         var match = /processed=(\d+)\s+discovered=(\d+)(?:\s+ignored=(\d+))?/.exec(output || '');
         if (match) {
             $('#detect-summary').html(
-                '<span class="label label-info">{{ lang._('Processed') }}: ' + match[1] + '</span> ' +
-                '<span class="label label-success">{{ lang._('Discovered') }}: ' + match[2] + '</span> ' +
-                '<span class="label label-default">{{ lang._('Ignored 802.1X') }}: ' + (match[3] || 0) + '</span>'
+                '<span class="label label-info">{{ lang._('Log events read') }}: ' + match[1] + '</span> ' +
+                '<span class="label label-success">{{ lang._('New devices') }}: ' + match[2] + '</span> ' +
+                '<span class="label label-default">{{ lang._('802.1X events ignored') }}: ' + (match[3] || 0) + '</span>'
             );
+            $('#detect-help').text('{{ lang._('MAC-auth events can create Unknown Devices. 802.1X/PEAP events are counted but ignored because MAC approval cannot fix certificate or EAP credential failures.') }}');
+            $('#detect-output').text(output);
+            $('#detect-output-row').show();
+            return;
         }
+        $('#detect-summary').html('<span class="label label-default">{{ lang._('Not run yet') }}</span>');
+        $('#detect-help').text('{{ lang._('Click Scan FreeRADIUS logs to process new MAC-auth log entries.') }}');
+        $('#detect-output').text(output || '');
+        $('#detect-output-row').toggle(!!output);
     }
 
     function reloadDiagnostics() {
@@ -70,8 +93,7 @@ $(document).ready(function() {
             $('#config-exists').html(okLabel(diagnostics.config_exists === true));
             $('#authorize-exists').html(okLabel(diagnostics.authorize_exists === true));
             $('#detect-state').text((diagnostics.detect_state_exists ? '{{ lang._('Exists') }}' : '{{ lang._('Not created yet') }}') + (diagnostics.detect_state_path ? ' — ' + diagnostics.detect_state_path : ''));
-            $('#radius-status').text(data.freeradius_status || diagnostics.radius_status || '{{ lang._('unknown') }}');
-            $('#blocked-sync').text(data.blocked_sync || '{{ lang._('not run') }}');
+            renderRuntimeStatus(data.freeradius_status || diagnostics.radius_status || '', data.blocked_sync || '');
             $('#diagnostics-error').text(diagnostics.diagnostics_error || '');
             $('#diagnostics-error-row').toggle(!!diagnostics.diagnostics_error);
             renderWarnings(data.warnings || []);
@@ -82,6 +104,8 @@ $(document).ready(function() {
     $('#refreshAct').click(reloadDiagnostics);
     $('#detectAct').click(function() {
         $('#detect-summary').html('<span class="label label-info">{{ lang._('Running') }}</span>');
+        $('#detect-help').text('{{ lang._('Scanning configured FreeRADIUS log sources...') }}');
+        $('#detect-output-row').hide();
         ajaxCall('/api/nacmanager/diagnostics/detect', {}, function(data) {
             renderDetectOutput(data.response || '');
             reloadDiagnostics();
@@ -91,6 +115,14 @@ $(document).ready(function() {
     reloadDiagnostics();
 });
 </script>
+
+<style>
+.nac-health-list dd { padding-bottom: 5px; }
+.nac-runtime-item { margin-bottom: 14px; }
+.nac-runtime-item:last-child { margin-bottom: 0; }
+.nac-runtime-detail { margin: 6px 0 0; color: #777; }
+.nac-detect-help { margin: 8px 0 0; color: #777; }
+</style>
 
 <div class="content-box">
     <div class="col-md-12">
@@ -141,7 +173,7 @@ $(document).ready(function() {
                 <div class="panel panel-default">
                     <div class="panel-heading"><span class="fa fa-cogs"></span> {{ lang._('Service health') }}</div>
                     <div class="panel-body">
-                        <dl class="dl-horizontal">
+                        <dl class="dl-horizontal nac-health-list">
                             <dt>{{ lang._('FreeRADIUS') }}</dt><dd id="freeradius-enabled"></dd>
                             <dt>{{ lang._('VLAN assignment') }}</dt><dd id="vlan-enabled"></dd>
                             <dt>{{ lang._('Fallback VLAN') }}</dt><dd id="fallback-enabled"></dd>
@@ -158,10 +190,16 @@ $(document).ready(function() {
                 <div class="panel panel-default">
                     <div class="panel-heading"><span class="fa fa-server"></span> {{ lang._('Runtime output') }}</div>
                     <div class="panel-body">
-                        <strong>{{ lang._('FreeRADIUS status') }}</strong>
-                        <pre id="radius-status"></pre>
-                        <strong>{{ lang._('Blocked sync') }}</strong>
-                        <pre id="blocked-sync"></pre>
+                        <div class="nac-runtime-item">
+                            <strong>{{ lang._('FreeRADIUS service') }}</strong><br/>
+                            <span id="radius-status-label"></span>
+                            <p id="radius-status-detail" class="nac-runtime-detail"></p>
+                        </div>
+                        <div class="nac-runtime-item">
+                            <strong>{{ lang._('Blocked device synchronization') }}</strong><br/>
+                            <span id="blocked-sync-label"></span>
+                            <p id="blocked-sync-detail" class="nac-runtime-detail"></p>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -184,7 +222,11 @@ $(document).ready(function() {
             <div class="panel-heading"><span class="fa fa-search"></span> {{ lang._('Last detection run') }}</div>
             <div class="panel-body">
                 <p id="detect-summary"></p>
-                <pre id="detect-output"></pre>
+                <p id="detect-help" class="nac-detect-help"></p>
+                <div id="detect-output-row" style="display:none;">
+                    <strong>{{ lang._('Raw output') }}</strong>
+                    <pre id="detect-output"></pre>
+                </div>
             </div>
         </div>
     </div>
