@@ -174,6 +174,13 @@ scp net/nacmanager/src/opnsense/service/conf/actions.d/actions_nacmanager.conf r
 ssh root@<firewall-ip> 'chmod +x /usr/local/opnsense/scripts/Nacmanager/*.py && service configd restart'
 ```
 
+The configd actions call `/usr/local/bin/python3.11` explicitly, which matches OPNsense 25.7. If `configctl nacmanager ...` returns `Execute error`, first verify the scripts were copied:
+
+```sh
+ls -l /usr/local/opnsense/scripts/Nacmanager/
+/usr/local/bin/python3.11 /usr/local/opnsense/scripts/Nacmanager/diagnostics.py
+```
+
 For package builds, copy `net/nacmanager` into an OPNsense plugins build tree and run:
 
 ```sh
@@ -280,6 +287,12 @@ If a new unauthorized MAC does not appear under Unknown Devices:
 
    ```sh
    configctl nacmanager diagnostics
+   ```
+
+   If configd returns `Execute error`, run the script directly with Python to see the real error:
+
+   ```sh
+   /usr/local/bin/python3.11 /usr/local/opnsense/scripts/Nacmanager/diagnostics.py
    ```
 
    At least one log should show `candidate_events_in_tail` greater than `0` after a MAB attempt.
