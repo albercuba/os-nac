@@ -1,6 +1,7 @@
 <script>
 $(document).ready(function() {
     var approveRow = null;
+    var confirmAction = null;
 
     function iconButton(style, icon, title) {
         return $('<button class="btn btn-xs btn-' + style + '" type="button" title="' + title + '" aria-label="' + title + '"><span class="fa ' + icon + '"></span></button>');
@@ -35,6 +36,22 @@ $(document).ready(function() {
         });
     }
 
+    function openConfirmDialog(title, message, style, callback) {
+        confirmAction = callback;
+        $('#confirm-title').text(title);
+        $('#confirm-message').text(message);
+        $('#confirmRunAct').removeClass('btn-primary btn-warning btn-danger btn-success').addClass('btn-' + style);
+        $('#confirmDeviceModal').modal('show');
+    }
+
+    function runConfirmedAction() {
+        if (confirmAction !== null) {
+            confirmAction();
+        }
+        confirmAction = null;
+        $('#confirmDeviceModal').modal('hide');
+    }
+
     function reloadBlocked() {
         ajaxGet('/api/nacmanager/devices/search', {status: 'blocked'}, function(data) {
             var tbody = $('#grid-blocked tbody').empty();
@@ -51,9 +68,9 @@ $(document).ready(function() {
                 tr.append($('<td/>').text(row.assigned_vlan));
                 var actions = $('<td class="text-nowrap"/>');
                 actions.append(iconButton('success', 'fa-undo', '{{ lang._('Unblock') }}').click(function() {
-                    if (confirm('{{ lang._('Move this device back to Unknown?') }}')) {
+                    openConfirmDialog('{{ lang._('Unblock device') }}', '{{ lang._('Move this device back to Unknown?') }}', 'success', function() {
                         ajaxCall('/api/nacmanager/devices/unblock/' + row.uuid, {}, function() { reloadBlocked(); });
-                    }
+                    });
                 }));
                 actions.append(' ');
                 actions.append(iconButton('primary', 'fa-check', '{{ lang._('Approve') }}').click(function() {
@@ -66,6 +83,7 @@ $(document).ready(function() {
     }
     $('#refreshAct').click(reloadBlocked);
     $('#approveSaveAct').click(approveCurrentDevice);
+    $('#confirmRunAct').click(runConfirmedAction);
     reloadBlocked();
 });
 </script>
@@ -73,6 +91,7 @@ $(document).ready(function() {
 <div class="content-box">
     <div class="col-md-12">
         <h1>{{ lang._('Blocked Devices') }} <span id="blocked-count" class="label label-danger">0</span></h1>
+        <div class="alert alert-info"><span class="fa fa-info-circle"></span> {{ lang._('NAC Manager requires the FreeRADIUS plugin to be installed and configured. Blocking removes matching MAC-auth users from FreeRADIUS and syncs explicit rejects.') }}</div>
         <p>{{ lang._('Blocked devices are removed from the FreeRADIUS MAC-user allow-list and retained in NAC Manager state.') }}</p>
         <button class="btn btn-primary" id="refreshAct" type="button"><span class="fa fa-refresh"></span> {{ lang._('Refresh') }}</button>
         <br/><br/>
@@ -113,6 +132,24 @@ $(document).ready(function() {
             <div class="modal-footer">
                 <button type="button" class="btn btn-default" data-dismiss="modal">{{ lang._('Cancel') }}</button>
                 <button type="button" class="btn btn-primary" id="approveSaveAct"><span class="fa fa-check"></span> {{ lang._('Approve') }}</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="confirmDeviceModal" tabindex="-1" role="dialog" aria-labelledby="confirmDeviceLabel">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-label="{{ lang._('Close') }}"><span aria-hidden="true">&times;</span></button>
+                <h4 class="modal-title" id="confirmDeviceLabel"><span id="confirm-title"></span></h4>
+            </div>
+            <div class="modal-body">
+                <p id="confirm-message"></p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-default" data-dismiss="modal">{{ lang._('Cancel') }}</button>
+                <button type="button" class="btn btn-warning" id="confirmRunAct">{{ lang._('Continue') }}</button>
             </div>
         </div>
     </div>
