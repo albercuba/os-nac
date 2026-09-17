@@ -15,6 +15,15 @@ class DiagnosticsController extends ApiControllerBase
         $backend = new Backend();
         $statusText = $backend->configdRun('freeradius status');
         $sync = $backend->configdRun('nacmanager sync');
+        $diagnosticsText = trim($backend->configdRun('nacmanager diagnostics'));
+        $diagnostics = json_decode($diagnosticsText, true);
+        if (!is_array($diagnostics)) {
+            $diagnostics = array(
+                'diagnostics_ok' => false,
+                'diagnostics_error' => $diagnosticsText !== '' ? $diagnosticsText : 'Diagnostics command did not return JSON',
+                'logs' => array(),
+            );
+        }
         $general = new FreeRADIUSGeneral();
         $nac = new Nacmanager();
         $radius = new FreeRADIUSUser();
@@ -58,7 +67,8 @@ class DiagnosticsController extends ApiControllerBase
             'freeradius_status' => trim($statusText),
             'blocked_sync' => trim($sync),
             'counts' => $counts,
-                        'warnings' => $warnings,
+            'warnings' => $warnings,
+            'diagnostics' => $diagnostics,
         );
     }
 

@@ -1,5 +1,42 @@
 <script>
 $(document).ready(function() {
+    var editRow = null;
+
+    function iconButton(style, icon, title) {
+        return $('<button class="btn btn-xs btn-' + style + '" type="button" title="' + title + '" aria-label="' + title + '"><span class="fa ' + icon + '"></span></button>');
+    }
+
+    function openEditDialog(row) {
+        editRow = row;
+        $('#edit-device-title').text(row.hostname || row.mac || row.radius_identity || '');
+        $('#edit-mac').text(row.mac || '');
+        $('#edit-switch').text(row.switch_name || row.switch_ip || '');
+        $('#edit-port').text(row.switch_port || '');
+        $('#edit-vlan').val(row.vlan || '');
+        $('#edit-description').val(row.description || '');
+        $('#edit-enabled').prop('checked', row.enabled == '1');
+        $('#edit-validation').hide().text('');
+        $('#editDeviceModal').modal('show');
+    }
+
+    function saveCurrentDevice() {
+        if (editRow === null) {
+            return;
+        }
+        var vlan = $.trim($('#edit-vlan').val());
+        var description = $.trim($('#edit-description').val());
+        var enabled = $('#edit-enabled').is(':checked') ? '1' : '0';
+        if (vlan !== '' && (!/^\d+$/.test(vlan) || parseInt(vlan, 10) < 1 || parseInt(vlan, 10) > 4094)) {
+            $('#edit-validation').text('{{ lang._('VLAN must be between 1 and 4094.') }}').show();
+            return;
+        }
+        ajaxCall('/api/nacmanager/allowed/set/' + editRow.uuid, {vlan: vlan, description: description, enabled: enabled}, function() {
+            $('#editDeviceModal').modal('hide');
+            editRow = null;
+            reloadAllowed();
+        });
+    }
+
     function reloadAllowed() {
         ajaxGet('/api/nacmanager/allowed/search', {}, function(data) {
             var tbody = $('#grid-allowed tbody').empty();
@@ -15,23 +52,18 @@ $(document).ready(function() {
                 tr.append($('<td/>').text(row.switch_name || row.switch_ip || ''));
                 tr.append($('<td/>').text(row.switch_port || ''));
                 tr.append($('<td/>').text(row.port_last_seen || ''));
-                var actions = $('<td/>');
-                actions.append($('<button class="btn btn-xs btn-primary" type="button">{{ lang._('Edit') }}</button>').click(function() {
-                    var vlan = prompt('{{ lang._('VLAN ID') }}', row.vlan || '');
-                    if (vlan === null) { return; }
-                    var description = prompt('{{ lang._('Description') }}', row.description || '');
-                    if (description === null) { return; }
-                    var enabled = confirm('{{ lang._('Click OK to keep/enable this device. Click Cancel to disable it.') }}') ? '1' : '0';
-                    ajaxCall('/api/nacmanager/allowed/set/' + row.uuid, {vlan: vlan, description: description, enabled: enabled}, function() { reloadAllowed(); });
+                var actions = $('<td class="text-nowrap"/>');
+                actions.append(iconButton('primary', 'fa-pencil', '{{ lang._('Edit') }}').click(function() {
+                    openEditDialog(row);
                 }));
                 actions.append(' ');
-                actions.append($('<button class="btn btn-xs btn-warning" type="button">{{ lang._('Block') }}</button>').click(function() {
+                actions.append(iconButton('warning', 'fa-ban', '{{ lang._('Block') }}').click(function() {
                     if (confirm('{{ lang._('Revoke and block this MAC address?') }}')) {
                         ajaxCall('/api/nacmanager/allowed/block/' + row.uuid, {}, function() { reloadAllowed(); });
                     }
                 }));
                 actions.append(' ');
-                actions.append($('<button class="btn btn-xs btn-danger" type="button">{{ lang._('Delete') }}</button>').click(function() {
+                actions.append(iconButton('danger', 'fa-trash', '{{ lang._('Delete') }}').click(function() {
                     if (confirm('{{ lang._('Delete this FreeRADIUS MAC user?') }}')) {
                         ajaxCall('/api/nacmanager/allowed/delete/' + row.uuid, {}, function() { reloadAllowed(); });
                     }
@@ -42,6 +74,7 @@ $(document).ready(function() {
         });
     }
     $('#refreshAct').click(reloadAllowed);
+    $('#editSaveAct').click(saveCurrentDevice);
     reloadAllowed();
 });
 </script>
@@ -59,5 +92,39 @@ $(document).ready(function() {
             </tr></thead>
             <tbody></tbody>
         </table>
+    </div>
+</div>
+
+<div class="modal fade" id="editDeviceModal" tabindex="-1" role="dialog" aria-labelledby="editDeviceLabel">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-label="{{ lang._('Close') }}"><span aria-hidden="true">&times;</span></button>
+                <h4 class="modal-title" id="editDeviceLabel">{{ lang._('Edit allowed device') }} <small id="edit-device-title"></small></h4>
+            </div>
+            <div class="modal-body">
+                <div id="edit-validation" class="alert alert-danger" style="display:none;"></div>
+                <dl class="dl-horizontal">
+                    <dt>{{ lang._('MAC') }}</dt><dd id="edit-mac"></dd>
+                    <dt>{{ lang._('Switch') }}</dt><dd id="edit-switch"></dd>
+                    <dt>{{ lang._('Port') }}</dt><dd id="edit-port"></dd>
+                </dl>
+                <div class="checkbox">
+                    <label><input type="checkbox" id="edit-enabled" /> {{ lang._('Enabled') }}</label>
+                </div>
+                <div class="form-group">
+                    <label for="edit-vlan">{{ lang._('VLAN ID') }}</label>
+                    <input type="text" class="form-control" id="edit-vlan" placeholder="{{ lang._('Optional VLAN ID') }}" />
+                </div>
+                <div class="form-group">
+                    <label for="edit-description">{{ lang._('Description') }}</label>
+                    <input type="text" class="form-control" id="edit-description" placeholder="{{ lang._('Device description') }}" />
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-default" data-dismiss="modal">{{ lang._('Cancel') }}</button>
+                <button type="button" class="btn btn-primary" id="editSaveAct"><span class="fa fa-save"></span> {{ lang._('Save') }}</button>
+            </div>
+        </div>
     </div>
 </div>

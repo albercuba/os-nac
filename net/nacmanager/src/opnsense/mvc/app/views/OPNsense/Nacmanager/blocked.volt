@@ -1,5 +1,40 @@
 <script>
 $(document).ready(function() {
+    var approveRow = null;
+
+    function iconButton(style, icon, title) {
+        return $('<button class="btn btn-xs btn-' + style + '" type="button" title="' + title + '" aria-label="' + title + '"><span class="fa ' + icon + '"></span></button>');
+    }
+
+    function openApproveDialog(row) {
+        approveRow = row;
+        $('#approve-device-title').text(row.hostname || row.mac || row.radius_identity || '');
+        $('#approve-mac').text(row.mac || '');
+        $('#approve-switch').text(row.switch_name || row.switch_ip || '');
+        $('#approve-port').text(row.switch_port || row.nas_port || '');
+        $('#approve-vlan').val(row.assigned_vlan || '');
+        $('#approve-description').val(row.description || row.hostname || '');
+        $('#approve-validation').hide().text('');
+        $('#approveDeviceModal').modal('show');
+    }
+
+    function approveCurrentDevice() {
+        if (approveRow === null) {
+            return;
+        }
+        var vlan = $.trim($('#approve-vlan').val());
+        var description = $.trim($('#approve-description').val());
+        if (vlan !== '' && (!/^\d+$/.test(vlan) || parseInt(vlan, 10) < 1 || parseInt(vlan, 10) > 4094)) {
+            $('#approve-validation').text('{{ lang._('VLAN must be between 1 and 4094.') }}').show();
+            return;
+        }
+        ajaxCall('/api/nacmanager/devices/approve/' + approveRow.uuid, {assigned_vlan: vlan, description: description}, function() {
+            $('#approveDeviceModal').modal('hide');
+            approveRow = null;
+            reloadBlocked();
+        });
+    }
+
     function reloadBlocked() {
         ajaxGet('/api/nacmanager/devices/search', {status: 'blocked'}, function(data) {
             var tbody = $('#grid-blocked tbody').empty();
@@ -12,21 +47,17 @@ $(document).ready(function() {
                 tr.append($('<td/>').text(row.last_seen));
                 tr.append($('<td/>').text(row.switch_name || row.switch_ip || ''));
                 tr.append($('<td/>').text(row.switch_port || row.nas_port || ''));
-                tr.append($('<td/>').html('<span class="label label-danger">blocked</span>')); 
+                tr.append($('<td/>').html('<span class="label label-danger">blocked</span>'));
                 tr.append($('<td/>').text(row.assigned_vlan));
-                var actions = $('<td/>');
-                actions.append($('<button class="btn btn-xs btn-success" type="button">{{ lang._('Unblock') }}</button>').click(function() {
+                var actions = $('<td class="text-nowrap"/>');
+                actions.append(iconButton('success', 'fa-undo', '{{ lang._('Unblock') }}').click(function() {
                     if (confirm('{{ lang._('Move this device back to Unknown?') }}')) {
                         ajaxCall('/api/nacmanager/devices/unblock/' + row.uuid, {}, function() { reloadBlocked(); });
                     }
                 }));
                 actions.append(' ');
-                actions.append($('<button class="btn btn-xs btn-primary" type="button">{{ lang._('Approve') }}</button>').click(function() {
-                    var vlan = prompt('{{ lang._('VLAN ID') }}', row.assigned_vlan || '');
-                    if (vlan === null) { return; }
-                    var description = prompt('{{ lang._('Description') }}', row.description || '');
-                    if (description === null) { return; }
-                    ajaxCall('/api/nacmanager/devices/approve/' + row.uuid, {assigned_vlan: vlan, description: description}, function() { reloadBlocked(); });
+                actions.append(iconButton('primary', 'fa-check', '{{ lang._('Approve') }}').click(function() {
+                    openApproveDialog(row);
                 }));
                 tr.append(actions);
                 tbody.append(tr);
@@ -34,6 +65,7 @@ $(document).ready(function() {
         });
     }
     $('#refreshAct').click(reloadBlocked);
+    $('#approveSaveAct').click(approveCurrentDevice);
     reloadBlocked();
 });
 </script>
@@ -51,5 +83,37 @@ $(document).ready(function() {
             </tr></thead>
             <tbody></tbody>
         </table>
+    </div>
+</div>
+
+<div class="modal fade" id="approveDeviceModal" tabindex="-1" role="dialog" aria-labelledby="approveDeviceLabel">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-label="{{ lang._('Close') }}"><span aria-hidden="true">&times;</span></button>
+                <h4 class="modal-title" id="approveDeviceLabel">{{ lang._('Approve device') }} <small id="approve-device-title"></small></h4>
+            </div>
+            <div class="modal-body">
+                <div id="approve-validation" class="alert alert-danger" style="display:none;"></div>
+                <dl class="dl-horizontal">
+                    <dt>{{ lang._('MAC') }}</dt><dd id="approve-mac"></dd>
+                    <dt>{{ lang._('Switch') }}</dt><dd id="approve-switch"></dd>
+                    <dt>{{ lang._('Port') }}</dt><dd id="approve-port"></dd>
+                </dl>
+                <div class="form-group">
+                    <label for="approve-vlan">{{ lang._('VLAN ID') }}</label>
+                    <input type="text" class="form-control" id="approve-vlan" placeholder="{{ lang._('Optional VLAN ID') }}" />
+                    <span class="help-block">{{ lang._('Enter a VLAN between 1 and 4094, or leave empty for no VLAN assignment.') }}</span>
+                </div>
+                <div class="form-group">
+                    <label for="approve-description">{{ lang._('Description') }}</label>
+                    <input type="text" class="form-control" id="approve-description" placeholder="{{ lang._('Device description') }}" />
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-default" data-dismiss="modal">{{ lang._('Cancel') }}</button>
+                <button type="button" class="btn btn-primary" id="approveSaveAct"><span class="fa fa-check"></span> {{ lang._('Approve') }}</button>
+            </div>
+        </div>
     </div>
 </div>
