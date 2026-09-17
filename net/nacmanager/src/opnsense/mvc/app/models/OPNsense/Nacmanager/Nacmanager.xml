@@ -1,7 +1,7 @@
 <model>
     <mount>//OPNsense/nacmanager</mount>
     <description>NAC Manager device state</description>
-    <version>0.1.1</version>
+    <version>0.1.2</version>
     <items>
         <devices>
             <device type="ArrayField">
@@ -13,6 +13,10 @@
                     <Required>Y</Required>
                     <Mask>/^[0-9A-Fa-f]{12}$/</Mask>
                 </radius_identity>
+                <hostname type="TextField">
+                    <Required>N</Required>
+                    <Mask><![CDATA[/^[0-9A-Za-z._\- ]{0,128}$/]]></Mask>
+                </hostname>
                 <first_seen type="TextField">
                     <Required>N</Required>
                 </first_seen>

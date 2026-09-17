@@ -94,6 +94,7 @@ class DevicesController extends ApiMutableModelControllerBase
                 'uuid' => $uuid,
                 'mac' => (string)$node->mac,
                 'radius_identity' => (string)$node->radius_identity,
+                'hostname' => (string)$node->hostname,
                 'first_seen' => (string)$node->first_seen,
                 'last_seen' => (string)$node->last_seen,
                 'nas_ip' => (string)$node->nas_ip,
@@ -162,6 +163,10 @@ class DevicesController extends ApiMutableModelControllerBase
             error_log('nacmanager: device discovered ' . $identity);
         }
         $node->last_seen = $this->now();
+        $hostname = $this->request->getPost('hostname', null, '');
+        if ($hostname !== '') {
+            $node->hostname = $hostname;
+        }
         $node->nas_ip = $this->request->getPost('nas_ip', null, '');
         $node->nas_port = $this->request->getPost('nas_port', null, '');
         $switchName = $this->request->getPost('switch_name', null, '');

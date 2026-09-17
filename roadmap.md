@@ -20,6 +20,8 @@ Implemented:
 - [X] Log-scanning detection script and parser unit tests
 - [X] Cursor-based incremental log scanning
 - [X] Duplicate FreeRADIUS MAC-user warnings
+- [X] Hostname extraction/display from FreeRADIUS `host/<hostname>` identities
+- [X] PEAP/802.1X event classification so EAP failures do not create MAC-auth Unknown Devices
 
 Not yet verified:
 
@@ -71,7 +73,8 @@ Goal: make unknown-device discovery reliable for real UniFi/FreeRADIUS logs.
 - [ ] Extend parser tests with real sanitized log samples.
 - [X] Track a read cursor/state file to avoid repeatedly scanning the same events.
 - [X] Add idempotent update behavior for repeated attempts from the same MAC.
-- [X] Preserve latest NAS IP, NAS port, Calling-Station-Id, and auth result.
+- [X] Preserve latest NAS IP, NAS port, Calling-Station-Id, hostname, and auth result.
+- [X] Ignore PEAP/802.1X certificate or credential failures for MAC-auth approval workflows.
 - [ ] Evaluate accounting/detail logs or a dedicated FreeRADIUS policy/log rule as a cleaner event source.
 - [X] Add a cron/configd scheduling option for periodic detection.
 

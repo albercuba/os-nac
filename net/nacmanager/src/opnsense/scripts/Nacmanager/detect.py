@@ -29,6 +29,9 @@ CALLING_RE = re.compile(r'(?:Calling-Station-Id|cli)\s*(?::=|=|:)?\s*"?([0-9A-Fa
 NAS_RE = re.compile(r'(?:from client|NAS-IP-Address\s*(?::=|=|:)?)\s*"?([0-9]{1,3}(?:\.[0-9]{1,3}){3})"?', re.I)
 CLIENT_RE = re.compile(r'from client\s+([0-9A-Za-z._:-]+)', re.I)
 PORT_RE = re.compile(r'(?:port|NAS-Port(?:-Id)?\s*(?::=|=|:)?)\s*"?([0-9A-Za-z._:/-]+)"?', re.I)
+USER_RE = re.compile(r'(?:\[|\buser\s+)([^/\]\s]+)', re.I)
+HOST_RE = re.compile(r'(?:\[|\buser\s+)host/([^/\]<\s]+)', re.I)
+EAP_RE = re.compile(r'\b(eap|peap|tls)\b|Auth-Type\s*=\s*eap', re.I)
 REJECT_RE = re.compile(r'(reject|login incorrect|invalid user|no auth-type|access-reject)', re.I)
 ACCEPT_RE = re.compile(r'(access-accept|login ok)', re.I)
 
@@ -135,13 +138,22 @@ def event_from_line(line):
     nas = NAS_RE.search(line)
     client = CLIENT_RE.search(line)
     port = PORT_RE.search(line)
+    user = USER_RE.search(line)
+    host = HOST_RE.search(line)
     nas_ip = nas.group(1) if nas else ''
     switch_name = client.group(1) if client else ''
     switch_port = port.group(1) if port else ''
+    auth_method = 'mac'
+    if host or EAP_RE.search(line):
+        user_identity = user.group(1) if user else ''
+        if normalize_mac(user_identity) != identity:
+            auth_method = 'eap'
     return {
         'radius_identity': identity,
         'mac': display_mac(identity),
+        'auth_method': auth_method,
         'calling_station_id': calling.group(1) if calling else '',
+        'hostname': host.group(1) if host else '',
         'nas_ip': nas_ip,
         'nas_port': switch_port,
         'nas_identifier': switch_name,
@@ -195,6 +207,7 @@ def upsert_event(root, event):
         'last_seen': timestamp,
         'nas_ip': event.get('nas_ip', ''),
         'nas_port': event.get('nas_port', ''),
+        'hostname': event.get('hostname', ''),
         'switch_name': event.get('switch_name', ''),
         'switch_ip': event.get('switch_ip', ''),
         'switch_port': event.get('switch_port', ''),
@@ -237,13 +250,19 @@ def main():
             if event is not None:
                 events.append(event)
     created = 0
+    changed = 0
+    ignored = 0
     for event in events:
+        if event.get('auth_method', 'mac') != 'mac':
+            ignored += 1
+            continue
         if upsert_event(root, event):
             created += 1
-    if events:
+        changed += 1
+    if changed:
         atomic_write(tree)
     save_state(state)
-    print('processed=%d discovered=%d' % (len(events), created))
+    print('processed=%d discovered=%d ignored=%d' % (len(events), created, ignored))
     return 0
 
 

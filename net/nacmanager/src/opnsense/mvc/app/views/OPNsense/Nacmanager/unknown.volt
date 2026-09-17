@@ -7,11 +7,10 @@ $(document).ready(function() {
             $.each(data.rows || [], function(_, row) {
                 var tr = $('<tr/>');
                 tr.append($('<td/>').text(row.mac));
+                tr.append($('<td/>').text(row.hostname || ''));
                 tr.append($('<td/>').text(row.radius_identity));
                 tr.append($('<td/>').text(row.first_seen));
                 tr.append($('<td/>').text(row.last_seen));
-                tr.append($('<td/>').text(row.nas_ip));
-                tr.append($('<td/>').text(row.nas_port));
                 tr.append($('<td/>').text(row.switch_name || row.switch_ip || ''));
                 tr.append($('<td/>').text(row.switch_port || row.nas_port || ''));
                 tr.append($('<td/>').html('<span class="label label-warning">unknown</span>')); 
@@ -58,8 +57,8 @@ $(document).ready(function() {
         <br/><br/>
         <table id="grid-unknown" class="table table-condensed table-hover table-striped table-responsive">
             <thead><tr>
-                <th>{{ lang._('MAC') }}</th><th>{{ lang._('RADIUS Username') }}</th><th>{{ lang._('First Seen') }}</th><th>{{ lang._('Last Seen') }}</th>
-                <th>{{ lang._('NAS IP') }}</th><th>{{ lang._('NAS Port') }}</th><th>{{ lang._('Switch') }}</th><th>{{ lang._('Port') }}</th><th>{{ lang._('Status') }}</th><th>{{ lang._('Desired VLAN') }}</th><th>{{ lang._('Actions') }}</th>
+                <th>{{ lang._('MAC') }}</th><th>{{ lang._('Hostname') }}</th><th>{{ lang._('RADIUS Username') }}</th><th>{{ lang._('First Seen') }}</th><th>{{ lang._('Last Seen') }}</th>
+                <th>{{ lang._('Switch') }}</th><th>{{ lang._('Port') }}</th><th>{{ lang._('Status') }}</th><th>{{ lang._('Desired VLAN') }}</th><th>{{ lang._('Actions') }}</th>
             </tr></thead>
             <tbody></tbody>
         </table>

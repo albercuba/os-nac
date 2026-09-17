@@ -66,11 +66,18 @@ class AllowedController extends ApiControllerBase
         $nac = new Nacmanager();
         $devicesByIdentity = array();
         foreach ($nac->devices->device->iterateItems() as $deviceNode) {
-            $devicesByIdentity[strtoupper((string)$deviceNode->radius_identity)] = $deviceNode;
+            $deviceIdentity = $this->normalizeMac((string)$deviceNode->radius_identity);
+            if ($deviceIdentity !== null) {
+                $devicesByIdentity[$deviceIdentity] = $deviceNode;
+            }
+            $deviceMac = $this->normalizeMac((string)$deviceNode->mac);
+            if ($deviceMac !== null) {
+                $devicesByIdentity[$deviceMac] = $deviceNode;
+            }
         }
         foreach ($radius->users->user->iterateItems() as $uuid => $node) {
-            $identity = strtoupper((string)$node->username);
-            if (!$this->isMacIdentity($identity)) {
+            $identity = $this->normalizeMac((string)$node->username);
+            if ($identity === null) {
                 continue;
             }
             $deviceNode = $devicesByIdentity[$identity] ?? null;
@@ -78,6 +85,7 @@ class AllowedController extends ApiControllerBase
                 'uuid' => $uuid,
                 'enabled' => (string)$node->enabled,
                 'description' => (string)$node->description,
+                'hostname' => $deviceNode !== null ? (string)$deviceNode->hostname : '',
                 'mac' => $this->displayMac($identity),
                 'radius_identity' => $identity,
                 'vlan' => (string)$node->vlan,

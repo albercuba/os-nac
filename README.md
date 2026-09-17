@@ -12,12 +12,14 @@ Example:
 ## Current capabilities
 
 - Discover MAC-format FreeRADIUS authentication attempts from recent logs with cursor-based incremental scanning.
+- Classify PEAP/802.1X host events separately so certificate/user-auth failures do not become approvable MAC-auth devices.
 - Track unknown and blocked endpoint devices in NAC Manager state.
 - Read allowed endpoint devices from existing FreeRADIUS users with 12-hex usernames.
 - Approve unknown devices by creating/updating FreeRADIUS MAC users.
 - Edit VLAN, description, and enabled state for MAC-auth FreeRADIUS users.
 - Revoke or block MAC-auth users without touching non-MAC FreeRADIUS accounts.
 - Show diagnostics for FreeRADIUS status, VLAN/fallback settings, duplicate MAC-user warnings, blocked sync output, and device counts.
+- Show hostnames when FreeRADIUS logs include `host/<hostname>` identities.
 - Show last known switch and port when FreeRADIUS logs include NAS/client and port attributes.
 
 ## Upstream FreeRADIUS audit
@@ -41,7 +43,7 @@ The current upstream OPNsense plugin inspected from `github.com/opnsense/plugins
 
 ## Integration plan
 
-NAC Manager reuses the existing FreeRADIUS user model instead of replacing FreeRADIUS.
+NAC Manager reuses the existing FreeRADIUS user model instead of replacing FreeRADIUS. The current approval workflow manages MAC Auth/MAB identities only; PEAP/802.1X identities such as `host/laptop-name` or user principals must be handled by the normal FreeRADIUS/identity configuration.
 
 1. Detect MAC-format FreeRADIUS auth attempts from logs.
 2. Store discovery/blocked metadata in `//OPNsense/nacmanager`.
@@ -101,6 +103,7 @@ Persistent NAC Manager records contain:
 
 - `mac`
 - `radius_identity`
+- `hostname`
 - `first_seen`
 - `last_seen`
 - `nas_ip`
@@ -208,7 +211,7 @@ For periodic detection, add an OPNsense cron job that runs this configd action:
 configctl nacmanager detect_scheduled
 ```
 
-The detector stores its read cursor in `/var/db/nacmanager/detect_state.json` so repeated scheduled runs process only new log data.
+The detector stores its read cursor in `/var/db/nacmanager/detect_state.json` so repeated scheduled runs process only new log data. Hostname display depends on FreeRADIUS logging an identity such as `host/Alberto-XPS13`; MAC-only authentication attempts will still show with an empty hostname.
 
 ## Workflows
 
@@ -216,7 +219,7 @@ The detector stores its read cursor in `/var/db/nacmanager/detect_state.json` so
 
 1. Unknown endpoint sends a RADIUS Access-Request.
 2. FreeRADIUS rejects it.
-3. `nacmanager detect` scans recent FreeRADIUS logs and records the MAC.
+3. `nacmanager detect` scans recent FreeRADIUS logs and records the MAC. PEAP/802.1X failures are classified and ignored by the Unknown Devices upsert path because approving a MAC user cannot fix certificate or EAP credential failures.
 4. The device appears in `Unknown Devices`.
 5. Admin chooses Approve, Block, or Delete.
 

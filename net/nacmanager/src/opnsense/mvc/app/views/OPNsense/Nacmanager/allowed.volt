@@ -8,6 +8,7 @@ $(document).ready(function() {
                 var tr = $('<tr/>');
                 tr.append($('<td/>').html(row.enabled == '1' ? '<span class="label label-success">enabled</span>' : '<span class="label label-default">disabled</span>'));
                 tr.append($('<td/>').text(row.description));
+                tr.append($('<td/>').text(row.hostname || ''));
                 tr.append($('<td/>').text(row.mac));
                 tr.append($('<td/>').text(row.radius_identity));
                 tr.append($('<td/>').text(row.vlan));
@@ -53,7 +54,7 @@ $(document).ready(function() {
         <br/><br/>
         <table id="grid-allowed" class="table table-condensed table-hover table-striped table-responsive">
             <thead><tr>
-                <th>{{ lang._('Enabled') }}</th><th>{{ lang._('Description') }}</th><th>{{ lang._('MAC') }}</th><th>{{ lang._('RADIUS Username') }}</th>
+                <th>{{ lang._('Enabled') }}</th><th>{{ lang._('Description') }}</th><th>{{ lang._('Hostname') }}</th><th>{{ lang._('MAC') }}</th><th>{{ lang._('RADIUS Username') }}</th>
                 <th>{{ lang._('VLAN ID') }}</th><th>{{ lang._('Switch') }}</th><th>{{ lang._('Port') }}</th><th>{{ lang._('Port Last Seen') }}</th><th>{{ lang._('Actions') }}</th>
             </tr></thead>
             <tbody></tbody>

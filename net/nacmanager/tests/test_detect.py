@@ -20,6 +20,7 @@ def test_reject_line_extracts_mab_identity_and_metadata():
     assert event['radius_identity'] == 'BC0FF392B33A'
     assert event['mac'] == 'BC:0F:F3:92:B3:3A'
     assert event['auth_result'] == 'reject'
+    assert event['auth_method'] == 'mac'
     assert event['calling_station_id'] == 'bc-0f-f3-92-b3-3a'
     assert event['switch_name'] == 'usw-pro-24'
     assert event['switch_port'] == '12'
@@ -43,11 +44,22 @@ def test_access_reject_with_calling_station_id_only():
     assert event['radius_identity'] == '001132220773'
     assert event['mac'] == '00:11:32:22:07:73'
     assert event['auth_result'] == 'reject'
+    assert event['auth_method'] == 'eap'
     assert event['nas_ip'] == '192.168.10.20'
     assert event['nas_port'] == 'Gi1/0/12'
     assert event['switch_ip'] == '192.168.10.20'
     assert event['switch_name'] == '192.168.10.20'
     assert event['switch_port'] == 'Gi1/0/12'
+
+
+def test_peap_host_identity_extracts_metadata_but_is_not_mac_auth():
+    line = 'Auth: (22) Login incorrect (eap_peap: (TLS) PEAP - Alert read:fatal:certificate expired): [host/Alberto-XPS13/<via Auth-Type = eap>] (from client rgts-prd-sw-01 port 14 cli cc:48:3a:b1:46:f8)'
+    event = detect.event_from_line(line)
+    assert event['radius_identity'] == 'CC483AB146F8'
+    assert event['auth_method'] == 'eap'
+    assert event['hostname'] == 'Alberto-XPS13'
+    assert event['switch_name'] == 'rgts-prd-sw-01'
+    assert event['switch_port'] == '14'
 
 
 def test_log_paths_expands_globs_and_preserves_order(tmp_path):
@@ -84,6 +96,7 @@ def test_upsert_event_updates_existing_without_duplicate():
         'radius_identity': 'BC0FF392B33A',
         'mac': 'BC:0F:F3:92:B3:3A',
         'calling_station_id': 'bc-0f-f3-92-b3-3a',
+        'hostname': 'printer-01',
         'nas_ip': '192.168.10.20',
         'nas_port': '1',
         'switch_name': 'usw-pro-24',
@@ -97,6 +110,7 @@ def test_upsert_event_updates_existing_without_duplicate():
     assert detect.upsert_event(root, event) is False
     devices = root.findall('./OPNsense/nacmanager/devices/device')
     assert len(devices) == 1
+    assert devices[0].findtext('hostname') == 'printer-01'
     assert devices[0].findtext('nas_port') == '2'
     assert devices[0].findtext('switch_name') == 'usw-pro-24'
     assert devices[0].findtext('switch_ip') == '192.168.10.20'
