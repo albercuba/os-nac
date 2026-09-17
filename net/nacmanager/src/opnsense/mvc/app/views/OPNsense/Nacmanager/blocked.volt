@@ -102,7 +102,7 @@ $(document).ready(function() {
     <div class="col-md-12">
         <h1>{{ lang._('Blocked Devices') }} <span id="blocked-count" class="label label-danger">0</span></h1>
         <div class="alert alert-info"><span class="fa fa-info-circle"></span> {{ lang._('NAC Manager requires the FreeRADIUS plugin to be installed and configured. Blocking removes matching MAC-auth users from FreeRADIUS and syncs explicit rejects.') }}</div>
-        <p>{{ lang._('Blocked devices are removed from the FreeRADIUS MAC-user allow-list and retained in NAC Manager state.') }}</p>
+
         <button class="btn btn-primary" id="refreshAct" type="button"><span class="fa fa-refresh"></span> {{ lang._('Refresh') }}</button>
         <br/><br/>
         <table id="grid-blocked" class="table table-condensed table-hover table-striped table-responsive">

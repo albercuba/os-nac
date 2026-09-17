@@ -128,7 +128,7 @@ $(document).ready(function() {
     <div class="col-md-12">
         <h1>{{ lang._('NAC Manager Diagnostics') }}</h1>
         <div class="alert alert-info"><span class="fa fa-info-circle"></span> {{ lang._('NAC Manager requires the FreeRADIUS plugin to be installed and configured. Install os-freeradius first, then configure FreeRADIUS clients and MAC-auth users through this plugin.') }}</div>
-        <p>{{ lang._('Review FreeRADIUS integration, detected device counts, blocked-device synchronization, and log sources used by NAC Manager.') }}</p>
+
         <button class="btn btn-primary" id="refreshAct" type="button"><span class="fa fa-refresh"></span> {{ lang._('Refresh') }}</button>
         <button class="btn btn-default" id="detectAct" type="button"><span class="fa fa-search"></span> {{ lang._('Scan FreeRADIUS logs') }}</button>
         <br/><br/>

@@ -112,7 +112,7 @@ $(document).ready(function() {
     <div class="col-md-12">
         <h1>{{ lang._('Unknown Devices') }} <span id="unknown-count" class="label label-warning">0</span></h1>
         <div class="alert alert-info"><span class="fa fa-info-circle"></span> {{ lang._('NAC Manager requires the FreeRADIUS plugin to be installed and configured. Approvals create or update MAC-auth users in FreeRADIUS.') }}</div>
-        <p>{{ lang._('Newest unauthorized MAC-auth attempts detected from FreeRADIUS activity appear first.') }}</p>
+
         <button class="btn btn-primary" id="refreshAct" type="button"><span class="fa fa-refresh"></span> {{ lang._('Refresh') }}</button>
         <button class="btn btn-default" id="detectAct" type="button"><span class="fa fa-search"></span> {{ lang._('Scan FreeRADIUS logs') }}</button>
         <br/><br/>

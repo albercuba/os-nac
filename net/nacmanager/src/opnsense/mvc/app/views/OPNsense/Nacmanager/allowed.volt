@@ -112,8 +112,7 @@ $(document).ready(function() {
     <div class="col-md-12">
         <h1>{{ lang._('Allowed Devices') }} <span id="allowed-count" class="label label-success">0</span></h1>
         <div class="alert alert-info"><span class="fa fa-info-circle"></span> {{ lang._('NAC Manager requires the FreeRADIUS plugin to be installed and configured. This page reads and edits MAC-auth users in FreeRADIUS.') }}</div>
-        <p>{{ lang._('This page reads 12-hex-digit MAC-auth endpoint users directly from the FreeRADIUS user model. Normal username/password accounts are not shown.') }}</p>
-        <p class="text-muted"><span class="fa fa-info-circle"></span> {{ lang._('Switch and port are shown when NAC Manager has seen matching FreeRADIUS log metadata for that MAC address. Existing FreeRADIUS MAC users may stay blank until the device authenticates again and logs are scanned.') }}</p>
+
         <button class="btn btn-primary" id="refreshAct" type="button"><span class="fa fa-refresh"></span> {{ lang._('Refresh') }}</button>
         <br/><br/>
         <table id="grid-allowed" class="table table-condensed table-hover table-striped table-responsive">
