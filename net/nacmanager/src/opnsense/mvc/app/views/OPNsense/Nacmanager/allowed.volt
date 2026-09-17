@@ -10,6 +10,7 @@ $(document).ready(function() {
     function openEditDialog(row) {
         editRow = row;
         $('#edit-device-title').text(row.hostname || row.mac || row.radius_identity || '');
+        $('#edit-hostname').text(row.hostname || '');
         $('#edit-mac').text(row.mac || '');
         $('#edit-switch').text(row.switch_name || row.switch_ip || '');
         $('#edit-port').text(row.switch_port || '');
@@ -97,6 +98,16 @@ $(document).ready(function() {
 });
 </script>
 
+<style>
+.nacmanager-modal .modal-header { border-bottom: 0; padding: 18px 24px 8px; }
+.nacmanager-modal .modal-body { padding: 8px 24px 18px; }
+.nacmanager-modal .modal-footer { border-top: 0; padding: 12px 24px 20px; }
+.nac-device-summary { margin: 0 0 18px; }
+.nac-device-summary dt { clear: left; float: left; width: 90px; text-align: left; font-weight: 600; }
+.nac-device-summary dd { margin-left: 100px; margin-bottom: 4px; }
+.nac-confirm-message { margin: 0; }
+</style>
+
 <div class="content-box">
     <div class="col-md-12">
         <h1>{{ lang._('Allowed Devices') }} <span id="allowed-count" class="label label-success">0</span></h1>
@@ -116,14 +127,15 @@ $(document).ready(function() {
 
 <div class="modal fade" id="editDeviceModal" tabindex="-1" role="dialog" aria-labelledby="editDeviceLabel">
     <div class="modal-dialog" role="document">
-        <div class="modal-content">
+        <div class="modal-content nacmanager-modal">
             <div class="modal-header">
                 <button type="button" class="close" data-dismiss="modal" aria-label="{{ lang._('Close') }}"><span aria-hidden="true">&times;</span></button>
                 <h4 class="modal-title" id="editDeviceLabel">{{ lang._('Edit allowed device') }} <small id="edit-device-title"></small></h4>
             </div>
             <div class="modal-body">
                 <div id="edit-validation" class="alert alert-danger" style="display:none;"></div>
-                <dl class="dl-horizontal">
+                <dl class="nac-device-summary">
+                    <dt>{{ lang._('Hostname') }}</dt><dd id="edit-hostname"></dd>
                     <dt>{{ lang._('MAC') }}</dt><dd id="edit-mac"></dd>
                     <dt>{{ lang._('Switch') }}</dt><dd id="edit-switch"></dd>
                     <dt>{{ lang._('Port') }}</dt><dd id="edit-port"></dd>
@@ -150,13 +162,13 @@ $(document).ready(function() {
 
 <div class="modal fade" id="confirmDeviceModal" tabindex="-1" role="dialog" aria-labelledby="confirmDeviceLabel">
     <div class="modal-dialog" role="document">
-        <div class="modal-content">
+        <div class="modal-content nacmanager-modal">
             <div class="modal-header">
                 <button type="button" class="close" data-dismiss="modal" aria-label="{{ lang._('Close') }}"><span aria-hidden="true">&times;</span></button>
                 <h4 class="modal-title" id="confirmDeviceLabel"><span id="confirm-title"></span></h4>
             </div>
             <div class="modal-body">
-                <p id="confirm-message"></p>
+                <p id="confirm-message" class="nac-confirm-message"></p>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-default" data-dismiss="modal">{{ lang._('Cancel') }}</button>
