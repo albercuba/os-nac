@@ -28,11 +28,11 @@ class DiagnosticsController extends ApiControllerBase
         $nac = new Nacmanager();
         $radius = new FreeRADIUSUser();
         $counts = array('unknown' => 0, 'allowed' => 0, 'blocked' => 0, 'mac_users' => 0, 'duplicate_mac_users' => 0);
-                $warnings = array();
-                $macUsers = array();
+        $warnings = array();
+        $macUsers = array();
         foreach ($nac->devices->device->iterateItems() as $node) {
             $status = (string)$node->status;
-            if (isset($counts[$status])) {
+            if ($status === 'unknown' || $status === 'blocked') {
                 $counts[$status]++;
             }
         }
@@ -46,6 +46,7 @@ class DiagnosticsController extends ApiControllerBase
                 $macUsers[$identity]++;
             }
         }
+        $counts['allowed'] = $counts['mac_users'];
         foreach ($macUsers as $identity => $count) {
             if ($count > 1) {
                 $counts['duplicate_mac_users'] += $count;
