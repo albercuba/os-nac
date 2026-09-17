@@ -9,7 +9,6 @@ $(document).ready(function() {
 
     function openApproveDialog(row) {
         approveRow = row;
-        $('#approve-device-title').text(row.hostname || row.mac || row.radius_identity || '');
         $('#approve-hostname').text(row.hostname || '');
         $('#approve-mac').text(row.mac || '');
         $('#approve-switch').text(row.switch_name || row.switch_ip || '');
@@ -132,7 +131,7 @@ $(document).ready(function() {
         <div class="modal-content nacmanager-modal">
             <div class="modal-header">
                 <button type="button" class="close" data-dismiss="modal" aria-label="{{ lang._('Close') }}"><span aria-hidden="true">&times;</span></button>
-                <h4 class="modal-title" id="approveDeviceLabel">{{ lang._('Approve device') }} <small id="approve-device-title"></small></h4>
+                <h4 class="modal-title" id="approveDeviceLabel">{{ lang._('Approve device') }}</h4>
             </div>
             <div class="modal-body">
                 <div id="approve-validation" class="alert alert-danger" style="display:none;"></div>
