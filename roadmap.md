@@ -154,6 +154,7 @@ Data model changes (`OPNsense\Nacmanager`):
   - `switch_uuid` (reference to `switches.switch`)
   - `switch_port` (ifIndex/ifName)
   - `port_last_seen`
+- [X] Add RADIUS-derived `switch_name`, `switch_ip`, `switch_port`, and `port_last_seen` fields for immediate visibility before SNMP polling.
 
 New script: `snmp_poll.py`
 
@@ -176,7 +177,7 @@ POST   /api/nacmanager/switches/test/{uuid}   # SNMP connectivity check
 UI additions:
 
 - New `Switches` page under `Services → NAC Manager` to manage SNMP targets (mirrors the existing FreeRADIUS Clients pattern).
-- `Port` column added to Unknown/Allowed/Blocked device grids.
+- [X] `Switch` and `Port` columns added to Unknown/Allowed/Blocked device grids using RADIUS metadata.
 
 Exit criteria:
 

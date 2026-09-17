@@ -18,6 +18,7 @@ Example:
 - Edit VLAN, description, and enabled state for MAC-auth FreeRADIUS users.
 - Revoke or block MAC-auth users without touching non-MAC FreeRADIUS accounts.
 - Show diagnostics for FreeRADIUS status, VLAN/fallback settings, duplicate MAC-user warnings, blocked sync output, and device counts.
+- Show last known switch and port when FreeRADIUS logs include NAS/client and port attributes.
 
 ## Upstream FreeRADIUS audit
 
@@ -104,6 +105,10 @@ Persistent NAC Manager records contain:
 - `last_seen`
 - `nas_ip`
 - `nas_port`
+- `switch_name`
+- `switch_ip`
+- `switch_port`
+- `port_last_seen`
 - `calling_station_id`
 - `auth_result`
 - `status`: `unknown`, `allowed`, `blocked`
@@ -258,14 +263,44 @@ Manual tests:
 
 - OPNsense system log receives PHP `error_log()` messages such as `nacmanager: approved <MAC>`.
 - FreeRADIUS logs remain under the existing FreeRADIUS diagnostics/log facilities.
+- Detection scans `/var/log/radius/latest.log`, `/var/log/radius/radius.log`, `/var/log/radius/*.log`, `/var/log/radius.log`, and `/var/log/system/latest.log` by default.
+- Diagnostics output includes visible log paths, file sizes, and how many parseable candidate events are present in each recent log tail.
 - Diagnostics page shows FreeRADIUS status, VLAN/fallback settings, sync output, and device counts.
+- Unknown, Allowed, and Blocked pages show `Switch` and `Port` from RADIUS metadata when available. On UniFi/FreeRADIUS this usually depends on whether logs include `NAS-IP-Address`, `NAS-Identifier`/client name, and `NAS-Port` or `NAS-Port-Id`.
+
+If a new unauthorized MAC does not appear under Unknown Devices:
+
+1. Confirm FreeRADIUS logged the attempt:
+
+   ```sh
+   grep -R "BC0FF392B33A\|Login incorrect\|Access-Reject" /var/log/radius /var/log/radius.log /var/log/system/latest.log
+   ```
+
+2. Run diagnostics and check the `logs` array:
+
+   ```sh
+   configctl nacmanager diagnostics
+   ```
+
+   At least one log should show `candidate_events_in_tail` greater than `0` after a MAB attempt.
+
+3. Run detection manually:
+
+   ```sh
+   configctl nacmanager detect
+   ```
+
+4. If the log contains the MAC but `candidate_events_in_tail` is `0`, paste a sanitized log line into a bug report so the parser can be taught that FreeRADIUS format.
+
+5. If the log does not contain the MAC, enable FreeRADIUS authentication logging in `Services → FreeRADIUS → General` and retry the MAB attempt.
 
 ## Known limitations
 
 See [`roadmap.md`](roadmap.md) for planned fixes and enhancements.
 
 - Detection is currently an idempotent incremental log scan, not a live event subscription.
-- Log parsing supports several common FreeRADIUS reject/accept line formats, including quoted `Calling-Station-Id`, but may need tuning for local log verbosity.
+- Log parsing supports several common FreeRADIUS reject/accept line formats, including quoted `Calling-Station-Id`, `NAS-IP-Address`, and `NAS-Port-Id`, but may need tuning for local log verbosity.
+- Switch/port display is currently RADIUS-derived. Authoritative physical MAC-to-port mapping through SNMP remains future work.
 - The explicit blocked deny-list currently patches the generated FreeRADIUS `authorize` file after template reload because upstream `os-freeradius` has no deny-list/include model for this purpose.
 - The UI uses simple native tables and prompt/confirm dialogs for MVP; richer modal forms can replace these later.
 - No dashboard widget is included yet.

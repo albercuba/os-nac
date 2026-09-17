@@ -1,6 +1,7 @@
 #!/usr/local/bin/python3
 
 import datetime
+import glob
 import json
 import os
 import re
@@ -11,9 +12,16 @@ import xml.etree.ElementTree as ET
 
 CONFIG = os.environ.get('NACMANAGER_CONFIG', '/conf/config.xml')
 STATE = os.environ.get('NACMANAGER_STATE', '/var/db/nacmanager/detect_state.json')
-LOGS = os.environ.get(
+DEFAULT_LOG_PATTERNS = [
+    '/var/log/radius/latest.log',
+    '/var/log/radius/radius.log',
+    '/var/log/radius/*.log',
+    '/var/log/radius.log',
+    '/var/log/system/latest.log',
+]
+LOG_PATTERNS = os.environ.get(
     'NACMANAGER_LOGS',
-    '/var/log/radius/radius.log:/var/log/radius.log:/var/log/system/latest.log',
+    ':'.join(DEFAULT_LOG_PATTERNS),
 ).split(':')
 TAIL_LIMIT = int(os.environ.get('NACMANAGER_TAIL_LIMIT', '200000'))
 MAC_RE = re.compile(r'(?<![0-9A-Fa-f])([0-9A-Fa-f]{12})(?![0-9A-Fa-f])')
@@ -76,6 +84,18 @@ def save_state(state):
             os.unlink(tmp)
 
 
+def log_paths(patterns=LOG_PATTERNS):
+    paths = []
+    seen = set()
+    for pattern in patterns:
+        matches = glob.glob(pattern) if any(char in pattern for char in '*?[') else [pattern]
+        for path in matches:
+            if path not in seen:
+                paths.append(path)
+                seen.add(path)
+    return paths
+
+
 def read_new_lines(path, state, limit=TAIL_LIMIT):
     try:
         stat = os.stat(path)
@@ -115,13 +135,19 @@ def event_from_line(line):
     nas = NAS_RE.search(line)
     client = CLIENT_RE.search(line)
     port = PORT_RE.search(line)
+    nas_ip = nas.group(1) if nas else ''
+    switch_name = client.group(1) if client else ''
+    switch_port = port.group(1) if port else ''
     return {
         'radius_identity': identity,
         'mac': display_mac(identity),
         'calling_station_id': calling.group(1) if calling else '',
-        'nas_ip': nas.group(1) if nas else '',
-        'nas_port': port.group(1) if port else '',
-        'nas_identifier': client.group(1) if client else '',
+        'nas_ip': nas_ip,
+        'nas_port': switch_port,
+        'nas_identifier': switch_name,
+        'switch_name': switch_name or nas_ip,
+        'switch_ip': nas_ip,
+        'switch_port': switch_port,
         'auth_result': 'accept' if ACCEPT_RE.search(line) else 'reject',
     }
 
@@ -169,6 +195,10 @@ def upsert_event(root, event):
         'last_seen': timestamp,
         'nas_ip': event.get('nas_ip', ''),
         'nas_port': event.get('nas_port', ''),
+        'switch_name': event.get('switch_name', ''),
+        'switch_ip': event.get('switch_ip', ''),
+        'switch_port': event.get('switch_port', ''),
+        'port_last_seen': timestamp if event.get('switch_name') or event.get('switch_ip') or event.get('switch_port') else '',
         'calling_station_id': event.get('calling_station_id', ''),
         'auth_result': event.get('auth_result', 'unknown'),
         'status': status,
@@ -201,7 +231,7 @@ def main():
     tree = ET.parse(CONFIG)
     root = tree.getroot()
     events = []
-    for path in LOGS:
+    for path in log_paths():
         for line in read_new_lines(path, state):
             event = event_from_line(line)
             if event is not None:

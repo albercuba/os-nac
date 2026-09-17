@@ -21,6 +21,8 @@ def test_reject_line_extracts_mab_identity_and_metadata():
     assert event['mac'] == 'BC:0F:F3:92:B3:3A'
     assert event['auth_result'] == 'reject'
     assert event['calling_station_id'] == 'bc-0f-f3-92-b3-3a'
+    assert event['switch_name'] == 'usw-pro-24'
+    assert event['switch_port'] == '12'
 
 
 def test_accept_line_extracts_result():
@@ -43,6 +45,24 @@ def test_access_reject_with_calling_station_id_only():
     assert event['auth_result'] == 'reject'
     assert event['nas_ip'] == '192.168.10.20'
     assert event['nas_port'] == 'Gi1/0/12'
+    assert event['switch_ip'] == '192.168.10.20'
+    assert event['switch_name'] == '192.168.10.20'
+    assert event['switch_port'] == 'Gi1/0/12'
+
+
+def test_log_paths_expands_globs_and_preserves_order(tmp_path):
+    radius_dir = tmp_path / 'radius'
+    radius_dir.mkdir()
+    latest = radius_dir / 'latest.log'
+    extra = radius_dir / 'radius.log'
+    latest.write_text('')
+    extra.write_text('')
+    missing = tmp_path / 'missing.log'
+    paths = detect.log_paths([str(latest), str(radius_dir / '*.log'), str(missing)])
+    assert paths[0] == str(latest)
+    assert str(extra) in paths
+    assert str(missing) in paths
+    assert paths.count(str(latest)) == 1
 
 
 def test_read_new_lines_tracks_cursor(tmp_path, monkeypatch):
@@ -66,11 +86,19 @@ def test_upsert_event_updates_existing_without_duplicate():
         'calling_station_id': 'bc-0f-f3-92-b3-3a',
         'nas_ip': '192.168.10.20',
         'nas_port': '1',
+        'switch_name': 'usw-pro-24',
+        'switch_ip': '192.168.10.20',
+        'switch_port': '1',
         'auth_result': 'reject',
     }
     assert detect.upsert_event(root, event) is True
     event['nas_port'] = '2'
+    event['switch_port'] = '2'
     assert detect.upsert_event(root, event) is False
     devices = root.findall('./OPNsense/nacmanager/devices/device')
     assert len(devices) == 1
     assert devices[0].findtext('nas_port') == '2'
+    assert devices[0].findtext('switch_name') == 'usw-pro-24'
+    assert devices[0].findtext('switch_ip') == '192.168.10.20'
+    assert devices[0].findtext('switch_port') == '2'
+    assert devices[0].findtext('port_last_seen')

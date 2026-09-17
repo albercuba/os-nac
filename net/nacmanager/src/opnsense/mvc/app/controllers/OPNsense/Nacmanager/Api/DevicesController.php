@@ -98,6 +98,10 @@ class DevicesController extends ApiMutableModelControllerBase
                 'last_seen' => (string)$node->last_seen,
                 'nas_ip' => (string)$node->nas_ip,
                 'nas_port' => (string)$node->nas_port,
+                'switch_name' => (string)$node->switch_name,
+                'switch_ip' => (string)$node->switch_ip,
+                'switch_port' => (string)$node->switch_port,
+                'port_last_seen' => (string)$node->port_last_seen,
                 'calling_station_id' => (string)$node->calling_station_id,
                 'auth_result' => (string)$node->auth_result,
                 'status' => (string)$node->status,
@@ -160,6 +164,15 @@ class DevicesController extends ApiMutableModelControllerBase
         $node->last_seen = $this->now();
         $node->nas_ip = $this->request->getPost('nas_ip', null, '');
         $node->nas_port = $this->request->getPost('nas_port', null, '');
+        $switchName = $this->request->getPost('switch_name', null, '');
+        $switchIp = $this->request->getPost('switch_ip', null, (string)$node->nas_ip);
+        $switchPort = $this->request->getPost('switch_port', null, (string)$node->nas_port);
+        if ($switchName !== '' || $switchIp !== '' || $switchPort !== '') {
+            $node->switch_name = $switchName !== '' ? $switchName : $switchIp;
+            $node->switch_ip = $switchIp;
+            $node->switch_port = $switchPort;
+            $node->port_last_seen = $this->now();
+        }
         $node->calling_station_id = $this->request->getPost('calling_station_id', null, '');
         $node->auth_result = $this->request->getPost('auth_result', null, 'reject');
         if ((string)$node->status !== 'blocked') {

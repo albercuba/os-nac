@@ -11,6 +11,9 @@ $(document).ready(function() {
                 tr.append($('<td/>').text(row.mac));
                 tr.append($('<td/>').text(row.radius_identity));
                 tr.append($('<td/>').text(row.vlan));
+                tr.append($('<td/>').text(row.switch_name || row.switch_ip || ''));
+                tr.append($('<td/>').text(row.switch_port || ''));
+                tr.append($('<td/>').text(row.port_last_seen || ''));
                 var actions = $('<td/>');
                 actions.append($('<button class="btn btn-xs btn-primary" type="button">{{ lang._('Edit') }}</button>').click(function() {
                     var vlan = prompt('{{ lang._('VLAN ID') }}', row.vlan || '');
@@ -51,7 +54,7 @@ $(document).ready(function() {
         <table id="grid-allowed" class="table table-condensed table-hover table-striped table-responsive">
             <thead><tr>
                 <th>{{ lang._('Enabled') }}</th><th>{{ lang._('Description') }}</th><th>{{ lang._('MAC') }}</th><th>{{ lang._('RADIUS Username') }}</th>
-                <th>{{ lang._('VLAN ID') }}</th><th>{{ lang._('Actions') }}</th>
+                <th>{{ lang._('VLAN ID') }}</th><th>{{ lang._('Switch') }}</th><th>{{ lang._('Port') }}</th><th>{{ lang._('Port Last Seen') }}</th><th>{{ lang._('Actions') }}</th>
             </tr></thead>
             <tbody></tbody>
         </table>

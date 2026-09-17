@@ -11,7 +11,9 @@ $(document).ready(function() {
                 tr.append($('<td/>').text(row.last_seen));
                 tr.append($('<td/>').text(row.nas_ip));
                 tr.append($('<td/>').text(row.nas_port));
-                tr.append($('<td/>').html('<span class="label label-danger">blocked</span>'));
+                tr.append($('<td/>').text(row.switch_name || row.switch_ip || ''));
+                tr.append($('<td/>').text(row.switch_port || row.nas_port || ''));
+                tr.append($('<td/>').html('<span class="label label-danger">blocked</span>')); 
                 tr.append($('<td/>').text(row.assigned_vlan));
                 var actions = $('<td/>');
                 actions.append($('<button class="btn btn-xs btn-success" type="button">{{ lang._('Unblock') }}</button>').click(function() {
@@ -46,7 +48,7 @@ $(document).ready(function() {
         <table id="grid-blocked" class="table table-condensed table-hover table-striped table-responsive">
             <thead><tr>
                 <th>{{ lang._('MAC') }}</th><th>{{ lang._('RADIUS Username') }}</th><th>{{ lang._('Last Seen') }}</th><th>{{ lang._('NAS IP') }}</th>
-                <th>{{ lang._('NAS Port') }}</th><th>{{ lang._('Status') }}</th><th>{{ lang._('Last VLAN') }}</th><th>{{ lang._('Actions') }}</th>
+                <th>{{ lang._('NAS Port') }}</th><th>{{ lang._('Switch') }}</th><th>{{ lang._('Port') }}</th><th>{{ lang._('Status') }}</th><th>{{ lang._('Last VLAN') }}</th><th>{{ lang._('Actions') }}</th>
             </tr></thead>
             <tbody></tbody>
         </table>

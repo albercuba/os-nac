@@ -63,11 +63,17 @@ class AllowedController extends ApiControllerBase
     {
         $rows = array();
         $radius = new FreeRADIUSUser();
+        $nac = new Nacmanager();
+        $devicesByIdentity = array();
+        foreach ($nac->devices->device->iterateItems() as $deviceNode) {
+            $devicesByIdentity[strtoupper((string)$deviceNode->radius_identity)] = $deviceNode;
+        }
         foreach ($radius->users->user->iterateItems() as $uuid => $node) {
             $identity = strtoupper((string)$node->username);
             if (!$this->isMacIdentity($identity)) {
                 continue;
             }
+            $deviceNode = $devicesByIdentity[$identity] ?? null;
             $rows[] = array(
                 'uuid' => $uuid,
                 'enabled' => (string)$node->enabled,
@@ -75,6 +81,10 @@ class AllowedController extends ApiControllerBase
                 'mac' => $this->displayMac($identity),
                 'radius_identity' => $identity,
                 'vlan' => (string)$node->vlan,
+                'switch_name' => $deviceNode !== null ? (string)$deviceNode->switch_name : '',
+                'switch_ip' => $deviceNode !== null ? (string)$deviceNode->switch_ip : '',
+                'switch_port' => $deviceNode !== null ? (string)$deviceNode->switch_port : '',
+                'port_last_seen' => $deviceNode !== null ? (string)$deviceNode->port_last_seen : '',
             );
         }
         usort($rows, function ($a, $b) {
