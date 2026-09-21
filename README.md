@@ -1,6 +1,10 @@
 # os-nac / NAC Manager
 
-`os-nac` is an OPNsense MVC plugin scaffold for MAC-based NAC management alongside the existing `os-freeradius` plugin. It targets OPNsense 25.7 and FreeRADIUS MAB/802.1X workflows where the switch sends a 12-hex-digit MAC address as both RADIUS username and password.
+`os-nac` is an OPNsense MVC plugin for MAC-based network access control alongside the existing `os-freeradius` plugin. It discovers FreeRADIUS MAC-auth activity, tracks unknown and blocked endpoint devices, manages MAC-auth users, and surfaces switch/port metadata in the OPNsense web UI.
+
+GitHub description:
+
+> OPNsense NAC Manager plugin for FreeRADIUS MAC authentication, unknown-device approval, blocked-device enforcement, and switch/port visibility.
 
 > Status: MVP scaffold. The plugin source, model, APIs, views, scripts, and parser tests are present, but it still needs live OPNsense 25.7 lab validation before production use. See [`roadmap.md`](roadmap.md) for the hardening plan.
 
@@ -8,6 +12,10 @@ Example:
 
 - MAC: `bc:0f:f3:92:b3:3a`
 - RADIUS username/password: `BC0FF392B33A`
+
+## License
+
+This project is licensed under the BSD 2-Clause License. See [`LICENSE`](LICENSE).
 
 ## Current capabilities
 
